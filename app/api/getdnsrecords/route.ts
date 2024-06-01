@@ -12,13 +12,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`, {
+    const response = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?per_page=5000 `, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
     });
+    // const responseJson = await response.json();
+    
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -26,6 +28,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await response.json();
+    console.log(data)
     return NextResponse.json(data.result, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: 'Error fetching DNS records' }, { status: 500 });

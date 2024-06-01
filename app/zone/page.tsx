@@ -20,25 +20,25 @@ const ZoneContent = () => {
   const zoneName = searchParams.get('zoneName');
   const [loaded, setLoaded] = useState(false);
   const [dnsRecords, setDnsRecords] = useState<DNSRecord[]>([]);
+  const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
   const fetchDNSRecords = useCallback(async () => {
     try {
       const response = await fetch(`/api/getdnsrecords?apiKey=${apiKey}&zoneId=${zoneId}`);
       const data = await response.json();
-      if (response.ok) {
-        setDnsRecords(data);
-        setError(null);
-      } else {
-        setError(data.detail || data.error);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch DNS records');
       }
-      setLoaded(true);
+      setDnsRecords(data);
+      setError(null);
     } catch (error) {
-      setError('Error fetching DNS records');
+      setError(error.message || 'Error fetching DNS records');
+    } finally {
       setLoaded(true);
     }
   }, [apiKey, zoneId]);
+  
 
   useEffect(() => {
     if (apiKey && zoneId && zoneName) {
@@ -58,7 +58,7 @@ const ZoneContent = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        alert('DNS records created successfully.');
+        console.log('record deleted')
         fetchDNSRecords(); // Refresh DNS records
       } else {
         alert(`Error: ${data.message}`);
@@ -67,6 +67,51 @@ const ZoneContent = () => {
       alert('Error creating DNS records');
     }
     setIsLoading(false);
+  };
+
+  const deleteDNSRecord = async (recordId: string) => {
+    try {
+      const response = await fetch(`/api/deletednsrecords?apiKey=${apiKey}&zoneId=${zoneId}&recordId=${recordId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      fetchDNSRecords();
+      if (response.ok) {
+        alert('DNS record deleted successfully.');
+        fetchDNSRecords(); // Refresh DNS records
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      alert('Error deleting DNS record');
+    }
+  };
+
+  const deleteSelectedDNSRecords = async () => {
+    for (let recordId of selectedRecords) {
+      await deleteDNSRecord(recordId);
+    }
+    setSelectedRecords(new Set()); // Clear selected records
+  };
+
+  const handleSelectRecord = (recordId: string) => {
+    setSelectedRecords((prevSelected) => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(recordId)) {
+        newSelected.delete(recordId);
+      } else {
+        newSelected.add(recordId);
+      }
+      return newSelected;
+    });
+  };
+
+  const handleSelectAllRecords = () => {
+    if (selectedRecords.size === dnsRecords.length) {
+      setSelectedRecords(new Set()); // Deselect all
+    } else {
+      setSelectedRecords(new Set(dnsRecords.map(record => record.id))); // Select all
+    }
   };
 
   if (!loaded) {
@@ -93,21 +138,44 @@ const ZoneContent = () => {
       <table className="min-w-full bg-white border border-gray-200">
         <thead>
           <tr>
+            <th className="py-2 px-4 border-b">
+              <input
+                type="checkbox"
+                checked={selectedRecords.size === dnsRecords.length}
+                onChange={handleSelectAllRecords}
+              />
+            </th>
             <th className="py-2 px-4 border-b">Type</th>
             <th className="py-2 px-4 border-b">Name</th>
             <th className="py-2 px-4 border-b">Content</th>
             <th className="py-2 px-4 border-b">TTL</th>
             <th className="py-2 px-4 border-b">Proxied</th>
+            <th className="py-2 px-4 border-b">Actions</th>
           </tr>
         </thead>
         <tbody>
           {dnsRecords.map((record) => (
             <tr key={record.id} className="hover:bg-gray-100">
+              <td className="py-2 px-4 border-b">
+                <input
+                  type="checkbox"
+                  checked={selectedRecords.has(record.id)}
+                  onChange={() => handleSelectRecord(record.id)}
+                />
+              </td>
               <td className="py-2 px-4 border-b">{record.type}</td>
               <td className="py-2 px-4 border-b">{record.name}</td>
               <td className="py-2 px-4 border-b">{record.content}</td>
               <td className="py-2 px-4 border-b">{record.ttl}</td>
               <td className="py-2 px-4 border-b">{record.proxied ? 'Yes' : 'No'}</td>
+              <td className="py-2 px-4 border-b">
+                <button
+                  onClick={() => deleteDNSRecord(record.id)}
+                  className="bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -119,6 +187,14 @@ const ZoneContent = () => {
       >
         {isLoading ? 'Adding...' : 'Add Bulk DNS Records'}
       </button>
+      {selectedRecords.size > 0 && (
+        <button
+          onClick={deleteSelectedDNSRecords}
+          className="mt-4 ml-4 bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600"
+        >
+          Delete Selected Records
+        </button>
+      )}
     </div>
   );
 };
