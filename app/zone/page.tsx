@@ -23,6 +23,7 @@ const ZoneContent = () => {
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
   const fetchDNSRecords = useCallback(async () => {
     try {
       const response = await fetch(`/api/getdnsrecords?apiKey=${apiKey}&zoneId=${zoneId}`);
@@ -32,13 +33,16 @@ const ZoneContent = () => {
       }
       setDnsRecords(data);
       setError(null);
-    } catch (error) {
-      setError(error.message || 'Error fetching DNS records');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || 'Error fetching DNS records');
+      } else {
+        setError('Error fetching DNS records');
+      }
     } finally {
       setLoaded(true);
     }
   }, [apiKey, zoneId]);
-  
 
   useEffect(() => {
     if (apiKey && zoneId && zoneName) {
@@ -58,13 +62,17 @@ const ZoneContent = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        console.log('record deleted')
+        alert('DNS records created successfully.');
         fetchDNSRecords(); // Refresh DNS records
       } else {
         alert(`Error: ${data.message}`);
       }
-    } catch (error) {
-      alert('Error creating DNS records');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert(error.message || 'Error creating DNS records');
+      } else {
+        alert('Error creating DNS records');
+      }
     }
     setIsLoading(false);
   };
@@ -75,20 +83,24 @@ const ZoneContent = () => {
         method: 'DELETE',
       });
       const data = await response.json();
-      fetchDNSRecords();
       if (response.ok) {
         alert('DNS record deleted successfully.');
         fetchDNSRecords(); // Refresh DNS records
       } else {
         alert(`Error: ${data.error}`);
       }
-    } catch (error) {
-      alert('Error deleting DNS record');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert(error.message || 'Error deleting DNS record');
+      } else {
+        alert('Error deleting DNS record');
+      }
     }
   };
 
   const deleteSelectedDNSRecords = async () => {
-    for (let recordId of selectedRecords) {
+    const recordIds = Array.from(selectedRecords);
+    for (let recordId of recordIds) {
       await deleteDNSRecord(recordId);
     }
     setSelectedRecords(new Set()); // Clear selected records
