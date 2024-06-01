@@ -1,7 +1,7 @@
 'use client';
 
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
 
 interface DNSRecord {
   id: string;
@@ -12,7 +12,7 @@ interface DNSRecord {
   proxied: boolean;
 }
 
-export default function Zone() {
+const ZoneContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const apiKey = searchParams.get('apiKey');
@@ -121,4 +121,12 @@ export default function Zone() {
       </button>
     </div>
   );
-}
+};
+
+const Zone = () => (
+  <Suspense fallback={<p className="text-center text-gray-500">Loading...</p>}>
+    <ZoneContent />
+  </Suspense>
+);
+
+export default Zone;
