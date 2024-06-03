@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
 export async function POST(req: NextRequest) {
-  const { apiKey, zoneId, recordType, recordName, recordContent, recordTTL, recordProxied } = await req.json();
+  const { apiKey, zoneId, recordType, recordName, recordContent, recordTTL, recordProxied, recordPriority } = await req.json();
 
   if (!apiKey || !zoneId || !recordType || !recordName || !recordContent || !recordTTL) {
     console.error('Missing required fields:', { apiKey, zoneId, recordType, recordName, recordContent, recordTTL });
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     content: recordContent,
     ttl: parseInt(recordTTL, 10),
     proxied: recordProxied || false,
+    priority: recordType === 'MX' ? recordPriority : undefined,
   };
 
   try {

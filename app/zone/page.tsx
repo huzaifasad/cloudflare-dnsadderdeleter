@@ -12,6 +12,7 @@ interface DNSRecord {
   content: string;
   ttl: number;
   proxied: boolean;
+  priority?: number; // Add priority for MX records
 }
 
 const ZoneContent = () => {
@@ -31,7 +32,8 @@ const ZoneContent = () => {
     name: '',
     content: '',
     ttl: 0,
-    proxied: false
+    proxied: false,
+    priority: 0, // Add priority state
   });
 
   const fetchDNSRecords = useCallback(async () => {
@@ -76,6 +78,7 @@ const ZoneContent = () => {
           recordContent: newRecord.content,
           recordTTL: newRecord.ttl,
           recordProxied: newRecord.proxied,
+          recordPriority: newRecord.type === 'MX' ? newRecord.priority : undefined,
         }),
       });
       const data = await response.json();
@@ -242,53 +245,56 @@ const ZoneContent = () => {
         Back
       </button>
       <h2 className="text-xl font-semibold mb-4">DNS Records</h2>
-      <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-md">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b">
-              <input
-                type="checkbox"
-                checked={selectedRecords.size === dnsRecords.length}
-                onChange={handleSelectAllRecords}
-                className="form-checkbox h-4 w-4 text-blue-600"
-              />
-            </th>
-            <th className="py-2 px-4 border-b text-left">Type</th>
-            <th className="py-2 px-4 border-b text-left">Name</th>
-            <th className="py-2 px-4 border-b text-left">Content</th>
-            <th className="py-2 px-4 border-b text-left">TTL</th>
-            <th className="py-2 px-4 border-b text-left">Proxied</th>
-            <th className="py-2 px-4 border-b text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {dnsRecords.map((record) => (
-            <tr key={record.id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 border-b">
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-md">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-2 px-4 border-b">
                 <input
                   type="checkbox"
-                  checked={selectedRecords.has(record.id)}
-                  onChange={() => handleSelectRecord(record.id)}
+                  checked={selectedRecords.size === dnsRecords.length}
+                  onChange={handleSelectAllRecords}
                   className="form-checkbox h-4 w-4 text-blue-600"
                 />
-              </td>
-              <td className="py-2 px-4 border-b">{record.type}</td>
-              <td className="py-2 px-4 border-b break-words">{record.name}</td>
-              <td className="py-2 px-4 border-b break-words">{record.content}</td>
-              <td className="py-2 px-4 border-b">{record.ttl}</td>
-              <td className="py-2 px-4 border-b">{record.proxied ? 'Yes' : 'No'}</td>
-              <td className="py-2 px-4 border-b">
-                <button
-                  onClick={() => deleteDNSRecord(record.id)}
-                  className="bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600"
-                >
-                  Delete
-                </button>
-              </td>
+              </th>
+              <th className="py-2 px-4 border-b text-left">Type</th>
+              <th className="py-2 px-4 border-b text-left">Name</th>
+              <th className="py-2 px-4 border-b text-left">Content</th>
+              <th className="py-2 px-4 border-b text-left">TTL</th>
+              <th className="py-2 px-4 border-b text-left">Proxied</th>
+              <th className="py-2 px-4 border-b text-left">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {dnsRecords.map((record) => (
+              <tr key={record.id} className="hover:bg-gray-50">
+                <td className="py-2 px-4 border-b">
+                  <input
+                    type="checkbox"
+                    checked={selectedRecords.has(record.id)}
+                    onChange={() => handleSelectRecord(record.id)}
+                    className="form-checkbox h-4 w-4 text-blue-600"
+                  />
+                </td>
+                <td className="py-2 px-4 border-b">{record.type}</td>
+                <td className="py-2 px-4 border-b break-words">{record.name}</td>
+                <td className="py-2 px-4 border-b break-words">{record.content}</td>
+                <td className="py-2 px-4 border-b">{record.ttl}</td>
+                <td className="py-2 px-4 border-b">{record.proxied ? 'Yes' : 'No'}</td>
+                <td className="py-2 px-4 border-b">
+                  <button
+                    onClick={() => deleteDNSRecord(record.id)}
+                    className="bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <button
         onClick={addBulkDNSRecords}
         className={`mt-4 bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -350,6 +356,17 @@ const ZoneContent = () => {
                 className="w-full p-2 border border-gray-300 rounded"
               />
             </div>
+            {newRecord.type === 'MX' && (
+              <div className="mb-4">
+                <label className="block text-gray-700 mb-2">Priority</label>
+                <input
+                  type="number"
+                  value={newRecord.priority}
+                  onChange={(e) => setNewRecord({ ...newRecord, priority: parseInt(e.target.value) })}
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+              </div>
+            )}
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">Proxied</label>
               <input
